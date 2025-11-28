@@ -1,5 +1,33 @@
 #include "main.h"
 
+// #define LEFTMOTORS_PORTS {11, 5, -2}    // Ports for left motors (negative for reversed)
+// #define RIGHTMOTORS_PORTS {20, 9, -10}  // Ports for right motors (negative for reversed)
+#define LEFT_MOTOR_A_PORT 6
+#define LEFT_MOTOR_B_PORT 8
+#define LEFT_MOTOR_C_PORT 2
+
+#define RIGHT_MOTOR_A_PORT 20
+#define RIGHT_MOTOR_B_PORT 9
+#define RIGHT_MOTOR_C_PORT -10
+
+#define INTAKE_PORT 19         // Port for intake motor
+#define SCORING_MOTOR_PORT 3  // Port for scoring motor
+#define INERTIAL_PORT 14      // Port for inertial sensor
+#define EXTENSION1_PORT 'a'   // Port for extension piston
+#define EXTENSION2_PORT 'b'   // Port for extension piston
+#define EXTENSION3_PORT 'c'   // Port for extension piston
+
+pros::MotorGroup LeftDriveSmart({LEFT_MOTOR_A_PORT, LEFT_MOTOR_B_PORT, -LEFT_MOTOR_C_PORT});
+pros::MotorGroup RightDriveSmart({RIGHT_MOTOR_A_PORT, RIGHT_MOTOR_B_PORT, -RIGHT_MOTOR_C_PORT});
+pros::Motor Intake(INTAKE_PORT);
+pros::Motor Scoring(SCORING_MOTOR_PORT);
+pros::Imu Inertial(INERTIAL_PORT);
+pros::ADIDigitalOut Extension1({EXTENSION1_PORT});
+pros::ADIDigitalOut Extension2({EXTENSION2_PORT});
+pros::ADIDigitalOut Extension3({EXTENSION3_PORT});
+
+bool extension_state = false;
+
 /**
  * A callback function for LLEMU's center button.
  *
@@ -73,22 +101,90 @@ void autonomous() {}
  * operator control task will be stopped. Re-enabling the robot will restart the
  * task, not resume it from where it left off.
  */
-void opcontrol() {
-	pros::Controller master(pros::E_CONTROLLER_MASTER);
-	pros::MotorGroup left_mg({1, -2, 3});    // Creates a motor group with forwards ports 1 & 3 and reversed port 2
-	pros::MotorGroup right_mg({-4, 5, -6});  // Creates a motor group with forwards port 5 and reversed ports 4 & 6
+void opcontrol()
+{
+    pros::Controller Controller1(pros::E_CONTROLLER_MASTER);
 
+    while (true)
+    {
+        // Calculate drivetrain motor velocities
+        // Left joystick (up/down) for forward/backward (Axis3)
+        // Right joystick (left/right) for turning (Axis1)
+        int turn = Controller1.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);     // Forward/backward
+        int forward = Controller1.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X); // Turning
 
-	while (true) {
-		pros::lcd::print(0, "%d %d %d", (pros::lcd::read_buttons() & LCD_BTN_LEFT) >> 2,
-		                 (pros::lcd::read_buttons() & LCD_BTN_CENTER) >> 1,
-		                 (pros::lcd::read_buttons() & LCD_BTN_RIGHT) >> 0);  // Prints status of the emulated screen LCDs
+        // Compute motor speeds for tank drive
+        int drivetrainLeftSideSpeed = (forward - turn);   // Left motor speed
+        int drivetrainRightSideSpeed = -(forward + turn); // Right motor speed
 
-		// Arcade control scheme
-		int dir = master.get_analog(ANALOG_LEFT_Y);    // Gets amount forward/backward from left joystick
-		int turn = master.get_analog(ANALOG_RIGHT_X);  // Gets the turn left/right from right joystick
-		left_mg.move(dir - turn);                      // Sets left motor voltage
-		right_mg.move(dir + turn);                     // Sets right motor voltage
-		pros::delay(20);                               // Run for 20 ms then update
-	}
+        // Deadband logic to prevent small joystick movements from moving the robot
+        const int deadband = 25; // Threshold for joystick input
+        if (abs(drivetrainLeftSideSpeed) < deadband)
+        {
+            drivetrainLeftSideSpeed = 0;
+        }
+        if (abs(drivetrainRightSideSpeed) < deadband)
+        {
+            drivetrainRightSideSpeed = 0;
+        }
+
+        // Set motor velocities
+        LeftDriveSmart.move_velocity((drivetrainRightSideSpeed * 2)); // Adjust scaling as needed
+        RightDriveSmart.move_velocity(-(drivetrainLeftSideSpeed * 2));
+
+        // Control Clamp and Flag using buttons
+        if (Controller1.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_X))
+        {
+
+        }
+        if (Controller1.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_Y))
+        {
+        }
+        if (Controller1.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A))
+        {
+            // scoreHighStakes();
+        }
+        if (Controller1.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_B))
+        {
+            // HighStakes.move_velocity(100);
+            // pros::delay(200);
+            // HighStakes.move_velocity(0);
+        }
+
+        // Control Intake using shoulder buttons (L1/L2)
+        if (Controller1.get_digital(pros::E_CONTROLLER_DIGITAL_L1))
+        {
+			Intake.move_velocity(200);
+			Scoring.move_velocity(-50);
+        } 
+        else if (Controller1.get_digital(pros::E_CONTROLLER_DIGITAL_L2))
+        {
+			Intake.move_velocity(-200);
+			Scoring.move_velocity(-50);
+        }
+        else
+        {
+			Intake.move_velocity(0);
+			Scoring.move_velocity(0);
+        }
+
+        if (Controller1.get_digital(pros::E_CONTROLLER_DIGITAL_R1))
+        {
+			Intake.move_velocity(200);
+			Scoring.move_velocity(200);
+        }
+        else if (Controller1.get_digital(pros::E_CONTROLLER_DIGITAL_R2))
+        {
+			Intake.move_velocity(200);
+			Scoring.move_velocity(-200);
+        }
+        else
+        {
+			Scoring.move_velocity(0);
+			Intake.move_velocity(0);
+        }
+
+        // Delay to prevent CPU overload
+        pros::delay(20);
+    }
 }
