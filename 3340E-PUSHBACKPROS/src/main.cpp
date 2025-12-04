@@ -26,7 +26,28 @@ pros::ADIDigitalOut Extension1({EXTENSION1_PORT});
 pros::ADIDigitalOut Extension2({EXTENSION2_PORT});
 pros::ADIDigitalOut Extension3({EXTENSION3_PORT});
 
-bool extension_state = false;
+bool extension3State = false;
+bool extension2State = false;
+bool extension1State = false;
+
+void Toggle_extension3()
+{
+	extension3State = !extension3State;
+	Extension3.set_value(extension3State);
+	pros::delay(200);
+}
+void Toggle_extension2()
+{
+	extension2State = !extension2State;
+	Extension2.set_value(extension2State);
+	pros::delay(200);
+}
+void Toggle_extension1()
+{
+	extension1State = !extension1State;
+	Extension1.set_value(extension1State);
+	pros::delay(200);
+}
 
 /**
  * A callback function for LLEMU's center button.
@@ -135,20 +156,20 @@ void opcontrol()
         // Control Clamp and Flag using buttons
         if (Controller1.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_X))
         {
+			Toggle_extension3();
 
         }
         if (Controller1.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_Y))
         {
+			Toggle_extension1();
         }
         if (Controller1.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A))
         {
-            // scoreHighStakes();
+			Toggle_extension2();
         }
         if (Controller1.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_B))
         {
-            // HighStakes.move_velocity(100);
-            // pros::delay(200);
-            // HighStakes.move_velocity(0);
+
         }
 
         // Control Intake using shoulder buttons (L1/L2)
@@ -171,7 +192,7 @@ void opcontrol()
         if (Controller1.get_digital(pros::E_CONTROLLER_DIGITAL_R1))
         {
 			Intake.move_velocity(200);
-			Scoring.move_velocity(200);
+			Scoring.move_velocity(-200);
         }
         else if (Controller1.get_digital(pros::E_CONTROLLER_DIGITAL_R2))
         {
