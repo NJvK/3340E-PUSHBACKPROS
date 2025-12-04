@@ -4,7 +4,7 @@
 // #define RIGHTMOTORS_PORTS {20, 9, -10}  // Ports for right motors (negative for reversed)
 #define LEFT_MOTOR_A_PORT 6
 #define LEFT_MOTOR_B_PORT 8
-#define LEFT_MOTOR_C_PORT 2
+#define LEFT_MOTOR_C_PORT 4
 
 #define RIGHT_MOTOR_A_PORT 20
 #define RIGHT_MOTOR_B_PORT 9
